@@ -23,7 +23,7 @@ function Home() {
         const document_2 = onSnapshot(doc(db, "users", sessionStorage.getItem("email")), (doc) => {
           try {
             sessionStorage.setItem("name",(doc.data().name));
-            sessionStorage.setItem("zipCode",(doc.data().zipCode))
+            sessionStorage.setItem("chefzipCode",(doc.data().zipCode))
             sessionStorage.setItem("aboutMe",(doc.data().aboutMe))
             sessionStorage.setItem("pfp", (doc.data().profilePicture))
             sessionStorage.setItem("openTimeStart", (doc.data().openHoursStart))
@@ -31,6 +31,9 @@ function Home() {
             sessionStorage.setItem("availability", JSON.stringify((doc.data().availability)))
             sessionStorage.setItem("telegramId", (doc.data().telegramID))
             sessionStorage.setItem("phoneNumber", (doc.data().phoneNumber))
+            if (!sessionStorage.getItem("zipCode")) {
+              sessionStorage.setItem("zipCode", doc.data().zipCode);
+            }
           } catch (e) {
             
           }
