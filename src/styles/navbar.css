@@ -1,0 +1,113 @@
+/* Basic styling for the navbar */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 100px;
+    color: #02dc64;
+    border-bottom: 1px solid gainsboro;
+    
+  }
+  
+  /* Styling for the logo */
+  .nav-logo {
+    font-size: 24px;
+    font-weight: bold;
+    font-family: 'Poppins';
+    margin: 0px;
+    text-shadow: 2px 2px 1px lightgreen;  
+  }
+
+  .notification-button {
+    position: relative;
+    width: 120px;
+    height: 40px;
+    border-radius: 10px;
+    background-color: rgb(109, 202, 109);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+    margin-right: 15px;
+    color: white;
+    font-size: 18px;
+    font-weight: 500;
+  }
+  
+  .notification-number {
+    position: absolute;
+    right: 5px;
+    width: 40px;
+    height: 30px;
+    border-radius: 25%;
+    background-color: white;
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600; 
+  }
+  
+  
+  /* Styling for the links */
+  .nav-links {
+    display: flex;
+    gap: 20px;
+    font-family: 'Gill Sans';
+    margin: 0px;
+    
+  }
+  
+  .nav-links a { 
+    color: #000000;
+    text-decoration: none;
+    font-size: 18px;
+    margin: 0px;
+    margin-top: 5px;
+  }
+  
+  /* Styling for the hamburger menu */
+  .nav-toggle {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+    
+  }
+  
+  .nav-toggle .bar {
+    width: 25px;
+    height: 3px;
+    color: #008080;
+    margin: 4px 0;
+  }
+  
+  /* Media query for responsive design */
+ /* @media (max-width: 768px) {
+    .nav-links {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      color: #008080;
+      position: absolute;
+      top: 60px;
+      left: 0;
+    }
+  
+    .nav-links.open {
+      display: flex;
+    }
+  
+    .nav-toggle {
+      display: flex;
+      color: #008080;
+    }
+  }
+  
+
+  input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}*/

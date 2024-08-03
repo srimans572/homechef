@@ -1,0 +1,33 @@
+/* Cart.css */
+
+.cart-container {
+    display: flex;
+    height: 100vh; /* Full height of the viewport */
+    padding: 20px;
+  }
+  
+  .left-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  
+  .title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 24px;
+    margin-bottom: 10px;
+  }
+  
+  .items {
+    font-family: 'Poppins', sans-serif;
+    font-size: 24px;
+    color: rgb(224, 224, 224);
+  }
+  
+  .right-section {
+    width: 300px; /* Fixed width for the right section */
+    background-color: rgb(255, 255, 255);
+  }
+  
