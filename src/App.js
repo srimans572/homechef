@@ -8,6 +8,7 @@ import AccountDetailsSignUp from "./pages/AccountDetailsSignUp";
 import Cart from "./pages/Cart";
 import Profile from "./pages/profile"
 
+
 function App() {
   return (
     <div>

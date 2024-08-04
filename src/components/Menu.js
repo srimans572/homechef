@@ -336,56 +336,86 @@ function Menu({ items, location }) {
                 {selectedItem?.vendorName}
               </p>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '50px' }}>
-                <div style={{
-                  width: '30%',
-                  borderRadius: '10px',
-                  padding: '10px',
-                  boxShadow: '0px 0px 10px rgba(0, 0, 0, 0.1)',
-                  textAlign: 'center',
-                  display: 'flex',
-                  marginLeft:"20px",
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '60px' // Adjust height as needed
-                }}>
-                  <p style={{ fontFamily: "Lato", fontWeight: 'bold', fontSize:"25px" }}>
-                  {selectedItem?.itemPortion}
-                  </p>
-                </div>
-                <div style={{
-                  width: '30%',
-                  borderRadius: '10px',
-                  padding: '10px',
-                  boxShadow: '0px 0px 10px rgba(0, 0, 0, 0.1)',
-                  textAlign: 'center',
-                  display: 'flex',
-                  marginLeft:"20px",
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '60px' // Adjust height as needed
-                }}>
-                <p style={{ fontFamily: "Lato", fontWeight: 'bold', fontSize:"25px"}}>
-                ${selectedItem?.itemPrice}
-                </p>
-                </div>
-                <div style={{
-                  width: '30%',
-                  borderRadius: '10px',
-                  padding: '10px',
-                  boxShadow: '0px 0px 10px rgba(0, 0, 0, 0.1)',
-                  textAlign: 'center',
-                  display: 'flex',
-                  marginLeft:"20px",
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '60px' // Adjust height as needed
-                }}>
-                  <p style={{ fontFamily: "Lato", fontWeight: 'bold', fontSize:"25px"}}>
-                  {selectedItem?.itemCuisine}
-                </p>
-                  
-                </div>
-              </div>
+  <div style={{
+    position: 'relative', // Enable absolute positioning inside
+    width: '30%',
+    borderRadius: '10px',
+    padding: '10px',
+    boxShadow: '0px 0px 10px rgba(0, 0, 0, 0.1)',
+    textAlign: 'center',
+    display: 'flex',
+    marginLeft: "20px",
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '60px' // Adjust height as needed
+  }}>
+    <span style={{
+      position: 'absolute',
+      top: '5px',
+      left: '10px',
+      fontSize: '12px',
+      color: 'gray',
+    }}>
+      Portion
+    </span>
+    <p style={{ fontFamily: "Lato", fontWeight: 'bold', fontSize: "25px" }}>
+      {selectedItem?.itemPortion}
+    </p>
+  </div>
+  <div style={{
+    position: 'relative', // Enable absolute positioning inside
+    width: '30%',
+    borderRadius: '10px',
+    padding: '10px',
+    boxShadow: '0px 0px 10px rgba(0, 0, 0, 0.1)',
+    textAlign: 'center',
+    display: 'flex',
+    marginLeft: "20px",
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '60px' // Adjust height as needed
+  }}>
+    <span style={{
+      position: 'absolute',
+      top: '5px',
+      left: '10px',
+      fontSize: '12px',
+      color: 'gray',
+    }}>
+      Price
+    </span>
+    <p style={{ fontFamily: "Lato", fontWeight: 'bold', fontSize: "25px" }}>
+      ${selectedItem?.itemPrice}
+    </p>
+  </div>
+  <div style={{
+    position: 'relative', // Enable absolute positioning inside
+    width: '30%',
+    borderRadius: '10px',
+    padding: '10px',
+    boxShadow: '0px 0px 10px rgba(0, 0, 0, 0.1)',
+    textAlign: 'center',
+    display: 'flex',
+    marginLeft: "20px",
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '60px' // Adjust height as needed
+  }}>
+    <span style={{
+      position: 'absolute',
+      top: '5px',
+      left: '10px',
+      fontSize: '12px',
+      color: 'gray',
+    }}>
+      Cuisine
+    </span>
+    <p style={{ fontFamily: "Lato", fontWeight: 'bold', fontSize: "25px" }}>
+      {selectedItem?.itemCuisine}
+    </p>
+  </div>
+</div>
+
               <p style={{ fontFamily: "Lato", marginTop:"40px" }}>
                 <span style={{ fontWeight: "bold" }}>Tags: </span>{" "}
                 {selectedItem?.itemTags}
