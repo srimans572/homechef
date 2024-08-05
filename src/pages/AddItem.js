@@ -7,8 +7,11 @@ import { updateDoc, arrayUnion, doc } from "firebase/firestore";
 import { db } from "../firebase/Firebase";
 import { useLocation } from "react-router";
 import { getDownloadURL } from "firebase/storage";
+import { useNavigate } from 'react-router-dom';
+
 
 function AddItem() {
+  const navigate = useNavigate();
   const location = useLocation();
   const [imageUpload, setImageUpload] = useState(null);
   const [imageSource, setImageSource] = useState("");
@@ -32,51 +35,101 @@ function AddItem() {
     const [ingridients, setIngridients] = useState(
       location.state?.item ? location.state.item.itemPortion : "")
 
+  // const updateItemList = async () => {
+  //   try {
+  //     if (imageUpload == null) return;
+  //     const imageName = imageUpload.name + v4();
+  //     const imageRef = ref(storage, `images/${imageName}`);
+  //     uploadBytes(imageRef, imageUpload).then(async()=>{
+  //       const url = await getDownloadURL(imageRef)
+  //       await updateDoc(doc(db, "users", sessionStorage.getItem("email")), {
+  //         items: arrayUnion({
+  //           itemName: name,
+  //           itemDescription: description,
+  //           itemPrice: price,
+  //           itemCuisine: cuisine,
+  //           itemTags: tags,
+  //           itemImage: url,
+  //           itemPortion: portion,
+  //           itemIngridients: ingridients,
+  //           vendorId: sessionStorage.getItem("email"),
+  //           vendorName: sessionStorage.getItem("name"),
+  //           vendorDistance: sessionStorage.getItem("zipCode"),
+  //           vendorTelegramId: sessionStorage.getItem("telegramId")  
+  //         }),
+  //       });
+  
+  //       await updateDoc(doc(db, "menu_items_homepage", "menu"), {
+  //         items: arrayUnion({
+  //           itemName: name,
+  //           itemDescription: description,
+  //           itemPrice: price,
+  //           itemCuisine: cuisine,
+  //           itemTags: tags,
+  //           itemImage: url,
+  //           itemPortion: portion,
+  //           itemIngridients: ingridients,
+  //           vendorId: sessionStorage.getItem("email"),
+  //           vendorName: sessionStorage.getItem("name"),
+  //           vendorDistance: sessionStorage.getItem("zipCode"),
+  //           vendorTelegramId: sessionStorage.getItem("telegramId")  
+  //         }),
+  //       });
+  
+  //     })
+  //     console.log(document);
+  //   } catch (e) {
+  //     console.log(e);
+  //   }
+  // };
+  const [loading, setLoading] = useState(false); // New state for loading
+
   const updateItemList = async () => {
+    setLoading(true); // Start loading
     try {
       if (imageUpload == null) return;
       const imageName = imageUpload.name + v4();
       const imageRef = ref(storage, `images/${imageName}`);
-      uploadBytes(imageRef, imageUpload).then(async()=>{
-        const url = await getDownloadURL(imageRef)
-        await updateDoc(doc(db, "users", sessionStorage.getItem("email")), {
-          items: arrayUnion({
-            itemName: name,
-            itemDescription: description,
-            itemPrice: price,
-            itemCuisine: cuisine,
-            itemTags: tags,
-            itemImage: url,
-            itemPortion: portion,
-            itemIngridients: ingridients,
-            vendorId: sessionStorage.getItem("email"),
-            vendorName: sessionStorage.getItem("name"),
-            vendorDistance: sessionStorage.getItem("zipCode"),
-            vendorTelegramId: sessionStorage.getItem("telegramId")  
-          }),
-        });
-  
-        await updateDoc(doc(db, "menu_items_homepage", "menu"), {
-          items: arrayUnion({
-            itemName: name,
-            itemDescription: description,
-            itemPrice: price,
-            itemCuisine: cuisine,
-            itemTags: tags,
-            itemImage: url,
-            itemPortion: portion,
-            itemIngridients: ingridients,
-            vendorId: sessionStorage.getItem("email"),
-            vendorName: sessionStorage.getItem("name"),
-            vendorDistance: sessionStorage.getItem("zipCode"),
-            vendorTelegramId: sessionStorage.getItem("telegramId")  
-          }),
-        });
-  
-      })
-      console.log(document);
+      await uploadBytes(imageRef, imageUpload);
+      const url = await getDownloadURL(imageRef);
+      await updateDoc(doc(db, "users", sessionStorage.getItem("email")), {
+        items: arrayUnion({
+          itemName: name,
+          itemDescription: description,
+          itemPrice: price,
+          itemCuisine: cuisine,
+          itemTags: tags,
+          itemImage: url,
+          itemPortion: portion,
+          itemIngridients: ingridients,
+          vendorId: sessionStorage.getItem("email"),
+          vendorName: sessionStorage.getItem("name"),
+          vendorDistance: sessionStorage.getItem("zipCode"),
+          vendorTelegramId: sessionStorage.getItem("telegramId")
+        }),
+      });
+
+      await updateDoc(doc(db, "menu_items_homepage", "menu"), {
+        items: arrayUnion({
+          itemName: name,
+          itemDescription: description,
+          itemPrice: price,
+          itemCuisine: cuisine,
+          itemTags: tags,
+          itemImage: url,
+          itemPortion: portion,
+          itemIngridients: ingridients,
+          vendorId: sessionStorage.getItem("email"),
+          vendorName: sessionStorage.getItem("name"),
+          vendorDistance: sessionStorage.getItem("zipCode"),
+          vendorTelegramId: sessionStorage.getItem("telegramId")
+        }),
+      });
+      navigate("/edit-chef-profile");
     } catch (e) {
       console.log(e);
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
 
@@ -394,13 +447,36 @@ function AddItem() {
             marginTop: "30px",
             border: "none",
             margin: "20px",
-            cursor:"pointer"
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
           }}
-          onClick={async () => {updateItemList();}}
+          onClick={async () => {
+            updateItemList();
+          }}
+          disabled={loading} // Disable button while loading
         >
-          Add Item to My Menu
+          {loading ? (
+            <div style={{
+              border: "2px solid white",
+              borderTop: "2px solid black",
+              borderRadius: "50%",
+              width: "20px",
+              height: "20px",
+              animation: "spin 1s linear infinite",
+            }}></div>
+          ) : (
+            "Add Item to My Menu"
+          )}
         </button>
       </div>
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

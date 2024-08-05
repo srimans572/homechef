@@ -22,23 +22,6 @@ const AuthBox = () => {
     e.preventDefault();
   };
 
-  const register = async () => {
-    try {
-      const user = await createUserWithEmailAndPassword(auth, email, password);
-      console.log(user);
-
-      await setDoc(doc(db, "users", email), {
-        name: name,
-        email: email,
-        userType: "s",
-      });
-      console.log(document);
-    } catch (e) {
-      console.log(e);
-      setError(e.message);
-    }
-  };
-
   const storeItems = async () => {
     sessionStorage.setItem("name", name);
     sessionStorage.setItem("email", email);
@@ -60,11 +43,7 @@ const AuthBox = () => {
       setError(e.message);
     }
   };
-
-  const logOut = async () => {
-    await signOut(auth);
-  };
-
+  
   return (
     <div
       style={{

@@ -3,11 +3,11 @@ import { useState } from "react";
 
 function Search() {
   const [searchText, setSearchText] = useState(sessionStorage.getItem("searchText")?sessionStorage.getItem("searchText"):"");
-  const [zipCode, setZipcode] = useState(sessionStorage.getItem("zipCode")?sessionStorage.getItem("zipCode"):"");
-  const [radius, setRadius] =  useState(sessionStorage.getItem("radius")?sessionStorage.getItem("radius"):"");
+  const [zipCode, setZipcode] = useState((!sessionStorage.getItem("cartZipCode")&&sessionStorage.getItem("zipCode"))?sessionStorage.getItem("zipCode"):sessionStorage.getItem("cartZipCode")?sessionStorage.getItem("cartZipCode"):"");
+  const [radius, setRadius] =  useState(sessionStorage.getItem("radius")?sessionStorage.getItem("radius"):"10");
 
   useEffect(()=>{
-    sessionStorage.setItem("zipCode", zipCode)
+    sessionStorage.setItem("cartZipCode", zipCode)
     sessionStorage.setItem("searchText", searchText)
     sessionStorage.setItem("radius",radius)
   }
@@ -23,7 +23,7 @@ function Search() {
           textShadow: "2px 2px px gray"  
         }}
       >
-      Discover Authentic Cusines By Home Cooks.
+      Discover Authentic Cuisines By Home Cooks.
       </h1>
       <div style={styles.searchContainer}>
         <div
