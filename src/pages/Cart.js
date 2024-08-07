@@ -33,12 +33,32 @@ function Cart() {
       alert('Please select a time.');
       return;
     }
+    if (!selectedDate) {
+      alert('Please select a date.');
+      return;
+    }
   
     // Function to parse time strings
     const parseTime = (timeString) => {
       const [hours, minutes] = timeString.split(':').map(Number);
       return new Date(1970, 0, 1, hours, minutes); // Fixed date
     };
+    const formatTime = (timeString) => {
+      const [hours, minutes] = timeString.split(':').map(Number);
+      let period = 'AM';
+      let adjustedHours = hours;
+    
+      if (hours >= 12) {
+        period = 'PM';
+        adjustedHours = hours > 12 ? hours - 12 : 12; // 12 PM is an exception
+      } else if (hours === 0) {
+        adjustedHours = 12; // Midnight case
+      }
+    
+      const formattedTime = `${adjustedHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+      return formattedTime;
+    };
+    
   
     // Function to get shortened day name
     const getShortDayName = (date) => {
@@ -57,7 +77,8 @@ function Cart() {
         const itemEndTime = parseTime(item.item.endTime);
         const selectedDateTime = parseTime(selectedTime); // Only time matters here
         const selectedDay = getShortDayName(selectedDate); // Get shortened day name
-  
+        console.log(formatTime(selectedTime))
+        console.log(selectedDate)
         if (
           !availableDays.includes(selectedDay) ||
           selectedDateTime < itemStartTime ||
@@ -90,6 +111,8 @@ function Cart() {
         acc[vendorId] = {
           vendorTelegramId: entry.item.vendorTelegramId,
           orderDetails: [],
+          buyerDate: selectedDate.toString(),
+          buyerTime: formatTime(selectedTime).toString(),
           buyerContact: sessionStorage.getItem("phoneNumber"),
           buyerName: sessionStorage.getItem("name"),
           buyerEmail: sessionStorage.getItem("email"),
@@ -103,7 +126,6 @@ function Cart() {
         itemQuantity: entry.quantity,
         totalPrice: parseFloat(entry.quantity * entry.item.itemPrice),
       });
-      setItems([]);
   
       return acc;
     }, {});
@@ -111,11 +133,16 @@ function Cart() {
     const content = Object.values(groupedOrders);
     setOrderContent(content);
     console.log(content);
+
+    // Loop through each item and remove it from Firestore
+    for (let i = 0; i < items.length; i++) {
+        await handleRemove(0);
+    }
+    navigate("/")
   };
   
   
-  
-  
+
   
   useEffect(() => {
     const placeOrder = async () => {

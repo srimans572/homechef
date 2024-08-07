@@ -350,51 +350,53 @@ function Menu({ items, location }) {
                     View More
                   </button>
                   <button
-                    style={{
-                      fontFamily: "Poppins",
-                      width: "49%",
-                      borderRadius: "100px",
-                      color: "black",
-                      padding: "10px",
-                      backgroundColor: "white",
-                      justifySelf: "flex-end",
-                      border: "1px solid black",
-                      cursor: "pointer",
-                      position: "relative",
-                    }}
-                    onClick={async () => handleAddToCart(item)}
-                  >
-                    {isAdded.hasOwnProperty(item.itemImage) ? (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <div
-                          disabled={isAdded.hasOwnProperty(item.itemImage)}
-                          style={{
-                            width: "20px",
-                            height: "20px",
-                            borderRadius: "50%",
-                            backgroundColor: "green",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            animation: "fadeIn 0.5s",
-                          }}
-                        >
-                          <span style={{ color: "white", fontSize: "16px" }}>
-                            ✓
-                          </span>
-                        </div>
-                        <span style={{ marginLeft: "10px" }}>Added</span>
-                      </div>
-                    ) : (
-                      "Add to Cart"
-                    )}
-                  </button>
+  style={{
+    fontFamily: "Poppins",
+    width: "49%",
+    borderRadius: "100px",
+    color: "black",
+    padding: "10px",
+    backgroundColor: "white",
+    justifySelf: "flex-end",
+    border: "1px solid black",
+    cursor: isAdded.hasOwnProperty(item.itemImage) ? "not-allowed" : "pointer", // Change cursor when disabled
+    position: "relative",
+  }}
+  onClick={
+    isAdded.hasOwnProperty(item.itemImage)
+      ? () => {} // No-op function
+      : async () => handleAddToCart(item) // Actual function
+  }
+>
+  {isAdded.hasOwnProperty(item.itemImage) ? (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          width: "20px",
+          height: "20px",
+          borderRadius: "50%",
+          backgroundColor: "green",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          animation: "fadeIn 0.5s",
+        }}
+      >
+        <span style={{ color: "white", fontSize: "16px" }}>✓</span>
+      </div>
+      <span style={{ marginLeft: "10px" }}>Added</span>
+    </div>
+  ) : (
+    "Add to Cart"
+  )}
+</button>
+
                 </div>
               )}
             </div>
