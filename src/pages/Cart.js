@@ -20,9 +20,15 @@ function Cart() {
   const navigate = useNavigate(); // Hook to use navigation
 
   const createOrderDetails = async () => {
+    const email = sessionStorage.getItem("email");
+  
+    // Redirect to /auth if email is not in session storage
+    if (!email) {
+      navigate("/auth");
+      return;
+    }
     const unavailableChefs = new Set();
     const missingDataChefs = new Set();
-  
     if (!selectedTime) {
       alert('Please select a time.');
       return;
