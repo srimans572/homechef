@@ -16,6 +16,7 @@ const Navbar = () => {
 
   const handleSignOut = () => {
     signOut(auth);
+    navigate("/")
     sessionStorage.clear();
     window.location.reload();
   };

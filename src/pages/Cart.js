@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../Navbar";
 import { Resend } from "resend";
+import { updateDoc, doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase/Firebase";
+import { useNavigate } from "react-router-dom";
 
 const resend = new Resend("re_M1CS65eK_CniJtZ8GpxDWT91YCfCy5DQG");
 
@@ -12,40 +15,102 @@ function Cart() {
   const [orderContent, setOrderContent] = useState();
   const [additionalNotes, setAdditionalNotes] = useState("N/A");
   const [clicked, setClick] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
+  const navigate = useNavigate(); // Hook to use navigation
 
   const createOrderDetails = async () => {
+    const unavailableChefs = new Set();
+    const missingDataChefs = new Set();
+  
+    if (!selectedTime) {
+      alert('Please select a time.');
+      return;
+    }
+  
+    // Function to parse time strings
+    const parseTime = (timeString) => {
+      const [hours, minutes] = timeString.split(':').map(Number);
+      return new Date(1970, 0, 1, hours, minutes); // Fixed date
+    };
+  
+    // Function to get shortened day name
+    const getShortDayName = (date) => {
+      return new Date(date).toLocaleString('en-US', { weekday: 'short' });
+    };
+  
+    for (const item of items) {
+      if (!item.item.startTime || !item.item.endTime || !item.item.availability || !item.item.vendorName) {
+        missingDataChefs.add(item.item.vendorName || 'Unknown Chef');
+        continue;
+      }
+  
+      try {
+        const availableDays = item.item.availability; // Ensure this is a list of shortened days
+        const itemStartTime = parseTime(item.item.startTime);
+        const itemEndTime = parseTime(item.item.endTime);
+        const selectedDateTime = parseTime(selectedTime); // Only time matters here
+        const selectedDay = getShortDayName(selectedDate); // Get shortened day name
+  
+        if (
+          !availableDays.includes(selectedDay) ||
+          selectedDateTime < itemStartTime ||
+          selectedDateTime > itemEndTime
+        ) {
+          unavailableChefs.add(item.item.vendorName);
+        }
+      } catch (error) {
+        missingDataChefs.add(item.item.vendorName || 'Unknown Chef');
+      }
+    }
+  
+    const unavailableChefsArray = Array.from(unavailableChefs);
+    const missingDataChefsArray = Array.from(missingDataChefs);
+  
+    if (missingDataChefsArray.length > 0) {
+      alert(`The following chefs have missing data or invalid availability format and cannot be ordered from: \n${missingDataChefsArray.join(', ')}`);
+      return;
+    }
+  
+    if (unavailableChefsArray.length > 0) {
+      alert(`The following chefs are unavailable for this order date: \n${unavailableChefsArray.join(', ')}`);
+      return;
+    }
+  
     setClick(true);
     const groupedOrders = items.reduce((acc, entry) => {
       const vendorId = entry.item.vendorId;
       if (!acc[vendorId]) {
         acc[vendorId] = {
-          vendorTelegramId: entry.item.vendorTelegramId, // Assuming same vendor ID for all items
+          vendorTelegramId: entry.item.vendorTelegramId,
           orderDetails: [],
-          buyerContact: sessionStorage.getItem("phoneNumber"), // Assuming same contact for all items
-          buyerName: sessionStorage.getItem("name"), // Assuming same name for all items
+          buyerContact: sessionStorage.getItem("phoneNumber"),
+          buyerName: sessionStorage.getItem("name"),
           buyerEmail: sessionStorage.getItem("email"),
           additionalNotes: additionalNotes,
         };
       }
-
-      // Push the item details into the orderDetails array
+  
       acc[vendorId].orderDetails.push({
         itemName: entry.item.itemName,
-        itemPrice: `$${entry.item.itemPrice}`, // Adding $ sign for consistency
+        itemPrice: `$${entry.item.itemPrice}`,
         itemQuantity: entry.quantity,
         totalPrice: parseFloat(entry.quantity * entry.item.itemPrice),
       });
       setItems([]);
-
+  
       return acc;
     }, {});
-
-    // Step 2: Transform grouped data into an array
+  
     const content = Object.values(groupedOrders);
     setOrderContent(content);
     console.log(content);
   };
-
+  
+  
+  
+  
+  
   useEffect(() => {
     const placeOrder = async () => {
       const options = {
@@ -76,31 +141,136 @@ function Cart() {
     }
   }, [orderContent]);
 
-  const handleIncrease = (index) => {
-    const updatedItems = items.map((item, idx) => {
-      if (idx === index) {
-        return { ...item, quantity: item.quantity + 1 };
+  const handleIncrease = async (index) => {
+    try {
+      // Update local state
+      const updatedItems = items.map((item, idx) => {
+        if (idx === index) {
+          return { ...item, quantity: item.quantity + 1 };
+        }
+        return item;
+      });
+      setItems(updatedItems);
+  
+      // Get the current user's email from sessionStorage
+      const userEmail = sessionStorage.getItem("email");
+      if (userEmail) {
+        // Reference to the user's document in Firestore
+        const userDocRef = doc(db, "users", userEmail);
+  
+        // Fetch the current user's document
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          // Get the existing cart items from the user's document
+          const userCart = userDoc.data().cart || [];
+  
+          // Update the item quantity in the cart
+          const updatedCart = userCart.map((item, idx) => {
+            if (idx === index) {
+              return { ...item, quantity: item.quantity + 1 };
+            }
+            return item;
+          });
+  
+          // Update the user's document with the new cart
+          await updateDoc(userDocRef, {
+            cart: updatedCart,
+          });
+        } else {
+          console.log("User document does not exist.");
+        }
+      } else {
+        console.log("User email is not available in sessionStorage.");
       }
-      return item;
-    });
-    setItems(updatedItems);
+    } catch (error) {
+      console.error("Error increasing item quantity in cart: ", error);
+    }
   };
-  const handleRemove = (index) => {
-    const updatedItems = items.filter((_, idx) => idx !== index);
-    setItems(updatedItems);
-  };
-  const handleDecrease = (index) => {
-    const updatedItems = items.map((item, idx) => {
-      if (idx === index) {
-        return {
-          ...item,
-
-          quantity: item.quantity > 1 ? item.quantity - 1 : 1,
-        };
+  const handleRemove = async (index) => {
+    try {
+      // Update local state
+      const updatedItems = items.filter((_, idx) => idx !== index);
+      setItems(updatedItems);
+  
+      // Get the current user's email from sessionStorage
+      const userEmail = sessionStorage.getItem("email");
+      if (userEmail) {
+        // Reference to the user's document in Firestore
+        const userDocRef = doc(db, "users", userEmail);
+  
+        // Fetch the current user's document
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          // Get the existing cart items from the user's document
+          const userCart = userDoc.data().cart || [];
+  
+          // Remove the item at the specified index
+          const updatedCart = userCart.filter((_, idx) => idx !== index);
+  
+          // Update the user's document with the new cart
+          await updateDoc(userDocRef, {
+            cart: updatedCart,
+          });
+        } else {
+          console.log("User document does not exist.");
+        }
+      } else {
+        console.log("User email is not available in sessionStorage.");
       }
-      return item;
-    });
-    setItems(updatedItems);
+    } catch (error) {
+      console.error("Error removing item from cart: ", error);
+    }
+  };
+  const handleDecrease = async (index) => {
+    try {
+      // Update local state
+      const updatedItems = items.map((item, idx) => {
+        if (idx === index) {
+          return {
+            ...item,
+            quantity: item.quantity > 1 ? item.quantity - 1 : 1,
+          };
+        }
+        return item;
+      });
+      setItems(updatedItems);
+  
+      // Get the current user's email from sessionStorage
+      const userEmail = sessionStorage.getItem("email");
+      if (userEmail) {
+        // Reference to the user's document in Firestore
+        const userDocRef = doc(db, "users", userEmail);
+  
+        // Fetch the current user's document
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          // Get the existing cart items from the user's document
+          const userCart = userDoc.data().cart || [];
+  
+          // Update the item quantity in the cart
+          const updatedCart = userCart.map((item, idx) => {
+            if (idx === index) {
+              return {
+                ...item,
+                quantity: item.quantity > 1 ? item.quantity - 1 : 1,
+              };
+            }
+            return item;
+          });
+  
+          // Update the user's document with the new cart
+          await updateDoc(userDocRef, {
+            cart: updatedCart,
+          });
+        } else {
+          console.log("User document does not exist.");
+        }
+      } else {
+        console.log("User email is not available in sessionStorage.");
+      }
+    } catch (error) {
+      console.error("Error decreasing item quantity in cart: ", error);
+    }
   };
 
   useEffect(() => {
@@ -147,6 +317,7 @@ function Cart() {
     justifyContent: "center",
   };
 
+
   return (
     <div className="App">
       <Navbar />
@@ -159,8 +330,8 @@ function Cart() {
             flexDirection: "row",
           }}
         >
-          <div>
-            <div
+<div>
+             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -346,23 +517,25 @@ function Cart() {
                   borderRadius: "5px",
                   cursor: "pointer",
                   fontFamily: "Poppins, sans-serif",
-                  // marginRight: "10px",
                   width: "40%",
                   marginRight: "20px",
                 }}
                 type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
               />
               <input
                 type="time"
                 style={{
                   padding: "10px",
-                  // marginLeft:"2px",
                   border: "1px solid gainsboro",
                   borderRadius: "5px",
                   outline: "none",
                   fontFamily: "Poppins, sans-serif",
                   width: "40%",
                 }}
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
               />
             </div>
 
@@ -410,3 +583,4 @@ function Cart() {
 }
 
 export default Cart;
+

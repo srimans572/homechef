@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
 import {
   createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
+  sendEmailVerification,
   signOut,
 } from "firebase/auth";
 import { auth } from "../firebase/Firebase";
 import { db } from "../firebase/Firebase";
-import { addDoc, setDoc, doc } from "firebase/firestore";
+import { setDoc, doc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
 const FillUp = () => {
@@ -18,6 +17,7 @@ const FillUp = () => {
   const [phone, setPhone] = useState("");
   const [mode, setMode] = useState(0);
   const [error, setError] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
 
   const navigate = useNavigate();
 
@@ -27,12 +27,12 @@ const FillUp = () => {
 
   const register = async () => {
     try {
-      const user = await createUserWithEmailAndPassword(
+      const userCredential = await createUserWithEmailAndPassword(
         auth,
         sessionStorage.getItem("email"),
         sessionStorage.getItem("password")
       );
-      console.log(user);
+      const user = userCredential.user; // Extract the user from the credential
 
       await setDoc(doc(db, "users", sessionStorage.getItem("email")), {
         name: sessionStorage.getItem("name"),
@@ -42,16 +42,23 @@ const FillUp = () => {
         aboutMe: aboutMe,
         telegramID: telegramID,
         phoneNumber: phone,
-        items:null
+        items: null,
+        verify: 0,
+        cart: []
       });
       console.log(document);
+      await sendEmailVerification(user); // Send verification email
       sessionStorage.removeItem("password");
-      sessionStorage.setItem("zipCode", zipCode)
-      navigate("/");
+      sessionStorage.setItem("zipCode", zipCode);
+      setShowPopup(true); // Show the popup after registration
     } catch (e) {
       console.log(e);
       setError(e.message);
     }
+  };
+
+  const handlePopupClose = () => {
+    navigate("/auth");
   };
 
   useEffect(() => {
@@ -74,6 +81,7 @@ const FillUp = () => {
         flexDirection: "column",
       }}
     >
+      <div style={{height:'50px'}}></div>
       {error && (
         <div
           style={{
@@ -88,7 +96,7 @@ const FillUp = () => {
         >
           <p>
             Oops!
-            {mode == 1
+            {mode === 1
               ? " We can't find this account!"
               : " We encountered a problem."}
           </p>
@@ -98,7 +106,7 @@ const FillUp = () => {
         Let's Complete Your Account Set Up
       </h2>
       <form onSubmit={handleSubmit}>
-        {mode == 0 && (
+        {mode === 0 && (
           <div
             style={{
               display: "flex",
@@ -133,16 +141,16 @@ const FillUp = () => {
                     fontFamily: "Poppins",
                     border: "none",
                     outline:
-                      accountType == "Buyer"
+                      accountType === "Buyer"
                         ? "1px solid green"
                         : "1px solid gainsboro",
                     background:
-                      accountType == "Buyer" ? "#ebfcef" : "transparent",
+                      accountType === "Buyer" ? "#ebfcef" : "transparent",
                     cursor: "pointer",
                     margin: "0px 10px 0px 0px",
                     textAlign: "center",
                   }}
-                  onClick={async () => setAccountType("Buyer")}
+                  onClick={() => setAccountType("Buyer")}
                 >
                   Buyer
                 </div>
@@ -156,15 +164,15 @@ const FillUp = () => {
                     border: "none",
                     margin: "0px 10px 0px 0px",
                     outline:
-                      accountType == "Chef"
+                      accountType === "Chef"
                         ? "1px solid green"
                         : "1px solid gainsboro",
                     background:
-                      accountType == "Chef" ? "#ebfcef" : "transparent",
+                      accountType === "Chef" ? "#ebfcef" : "transparent",
                     cursor: "pointer",
                     textAlign: "center",
                   }}
-                  onClick={async () => setAccountType("Chef")}
+                  onClick={() => setAccountType("Chef")}
                 >
                   Home Chef
                 </div>
@@ -189,7 +197,7 @@ const FillUp = () => {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
-            <br></br>
+            <br />
             <label>Zip Code</label>
             <p style={{ margin: 0, fontSize: "12px", color: "gray" }}>
               Enter your Zip Code associated with your location.
@@ -209,30 +217,30 @@ const FillUp = () => {
               value={zipCode}
               onChange={(e) => setZipCode(e.target.value)}
             />
-            <br></br>
+            <br />
             <label>Telegram Chat ID</label>
-                <p style={{ margin: 0, fontSize: "12px", color: "gray" }}>
-                  Search @chatIDrobot on Telegram to find your unique Telegram Chat ID
-                </p>
-                <input
-                  style={{
-                    marginTop: "10px",
-                    padding: "10px",
-                    borderRadius: "10px",
-                    width: "475px",
-                    fontFamily: "Poppins",
-                    border: "none",
-                    outline: "1px solid gainsboro",
-                    resize: "none",
-                  }}
-                  type="text"
-                  placeholder="0123456789"
-                  value={telegramID}
-                  onChange={(e) => setTelegramID(e.target.value)}
-                />
-            {accountType == "Chef" && (
-              <div style={{}}>
-                <br></br>
+            <p style={{ margin: 0, fontSize: "12px", color: "gray" }}>
+              Search @chatIDrobot on Telegram to find your unique Telegram Chat ID
+            </p>
+            <input
+              style={{
+                marginTop: "10px",
+                padding: "10px",
+                borderRadius: "10px",
+                width: "475px",
+                fontFamily: "Poppins",
+                border: "none",
+                outline: "1px solid gainsboro",
+                resize: "none",
+              }}
+              type="text"
+              placeholder="0123456789"
+              value={telegramID}
+              onChange={(e) => setTelegramID(e.target.value)}
+            />
+            {accountType === "Chef" && (
+              <div>
+                <br />
                 <label>About Me</label>
                 <p style={{ margin: 0, fontSize: "12px", color: "gray" }}>
                   This information will be available for others to see
@@ -268,7 +276,7 @@ const FillUp = () => {
             justifySelf: "flex-end",
             marginTop: "30px",
             border: "none",
-            cursor:"pointer"
+            cursor: "pointer",
           }}
           type="submit"
           onClick={async () => register()}
@@ -276,6 +284,42 @@ const FillUp = () => {
           Finish Sign Up
         </button>
       </form>
+
+      {/* Popup */}
+      {showPopup && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            backgroundColor: "white",
+            padding: "20px",
+            borderRadius: "10px",
+            boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)",
+            zIndex: 1000,
+            textAlign: "center",
+          }}
+        >
+          <p style={{ fontFamily: "Poppins", marginBottom: "20px" }}>
+            Please check your email to verify your account. Once verified, you can sign in.
+          </p>
+          <button
+            style={{
+              fontFamily: "Poppins",
+              borderRadius: "100px",
+              color: "white",
+              padding: "10px 20px",
+              backgroundColor: "black",
+              border: "none",
+              cursor: "pointer",
+            }}
+            onClick={handlePopupClose}
+          >
+            Done
+          </button>
+        </div>
+      )}
     </div>
   );
 };

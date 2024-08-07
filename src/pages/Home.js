@@ -37,6 +37,9 @@ function Home() {
               sessionStorage.setItem("aboutMe", doc.data().aboutMe);
               sessionStorage.setItem("pfp", doc.data().profilePicture);
               sessionStorage.setItem("zipCode", doc.data().zipCode);
+              // Assuming `doc.data().cart` is the cart data retrieved from Firestore
+              sessionStorage.setItem("cart", JSON.stringify(doc.data().cart));
+              sessionStorage.setItem("verify", doc.data().verify)
               sessionStorage.setItem(
                 "openTimeStart",
                 doc.data().openHoursStart

@@ -6,6 +6,11 @@ import zipcodes from "zipcodes";
 import { getDistance } from "geolib";
 import { searchText } from "../global/global";
 import "@fortawesome/fontawesome-free/css/all.min.css"; // Import Font Awesome
+import { updateDoc, arrayRemove, doc } from "firebase/firestore";
+import { db } from "../firebase/Firebase";
+import { getDoc } from "firebase/firestore";
+
+
 
 function Menu({ items, location }) {
   const [imageUrls, setImageUrls] = useState([{}]); // Store image URLs by item path
@@ -17,13 +22,36 @@ function Menu({ items, location }) {
   const [isAdded, setIsAdded] = useState({}); // State for tracking added items
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const handleRemoveItem = async (item) => {
+    try {
+      // Remove the item from the user's list in Firebase
+      await updateDoc(doc(db, "users", sessionStorage.getItem("email")), {
+        items: arrayRemove(item),
+      });
 
+      // Remove the item from the homepage menu in Firebase
+      await updateDoc(doc(db, "menu_items_homepage", "menu"), {
+        items: arrayRemove(item),
+      });
+
+      // Optionally, you can update the local state or reload the items
+      const updatedItems = items.filter(i => i.itemImage !== item.itemImage);
+      setCartItems(updatedItems);
+      sessionStorage.setItem("cart", JSON.stringify(updatedItems));
+
+      // Provide feedback or navigate as needed
+      window.location.reload()
+    } catch (error) {
+      console.error("Error removing item: ", error);
+    }
+  };
   const handleAddToCart = async (item) => {
-    setCartItems([
-      ...cartItems,
+  try {
+    // Update local state
+    setCartItems((prevItems) => [
+      ...prevItems,
       {
         item: item,
-        image: imageUrls[item.itemImage],
         quantity: 1,
       },
     ]);
@@ -33,8 +61,41 @@ function Menu({ items, location }) {
       [item.itemImage]: true,
     }));
 
-    // Optionally reset isAdded after a delay
-  };
+    // Get the current user's email from sessionStorage
+    const userEmail = sessionStorage.getItem("email");
+    if (userEmail) {
+      // Reference to the user's document in Firestore
+      const userDocRef = doc(db, "users", userEmail);
+
+      // Fetch the current user's document
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        // Get the existing cart items from the user's document
+        const userCart = userDoc.data().cart || [];
+
+        // Add the new item to the cart
+        const updatedCart = [
+          ...userCart,
+          {
+            item: item,
+            quantity: 1,
+          },
+        ];
+
+        // Update the user's document with the new cart
+        await updateDoc(userDocRef, {
+          cart: updatedCart,
+        });
+      } else {
+        console.log("User document does not exist.");
+      }
+    } else {
+      console.log("User email is not available in sessionStorage.");
+    }
+  } catch (error) {
+    console.error("Error adding item to cart: ", error);
+  }
+};
 
   const navigate = useNavigate();
 
@@ -144,7 +205,9 @@ function Menu({ items, location }) {
         filterItemsByKeyword(
           items,
           sessionStorage.getItem("searchText"),
-          sessionStorage.getItem("cartZipCode"),
+          location !== "view" 
+            ? sessionStorage.getItem("cartZipCode") 
+            : sessionStorage.getItem("zipCode"),
           sessionStorage.getItem("radius")
         ).map((item) => (
           <div
@@ -228,10 +291,29 @@ function Menu({ items, location }) {
             </div>
             <div>
               {location == "view" && (
+                <div>
                 <button
                   style={{
                     fontFamily: "Poppins",
-                    width: "100%",
+                    width: "47.5%",
+                    marginLeft:"0%",
+                    borderColor:"red",
+                    borderRadius: "100px",
+                    color: "white",
+                    padding: "10px",
+                    backgroundColor: "red",
+                    justifySelf: "flex-end",
+                  }}
+                  onClick={() => handleRemoveItem(item)}
+                >
+                  Remove
+                </button>
+                <button
+                  style={{
+                    marginLeft:"0%",
+                    fontFamily: "Poppins",
+                    marginLeft:"5%",
+                    width: "47.5%",
                     borderRadius: "100px",
                     color: "white",
                     padding: "10px",
@@ -244,6 +326,7 @@ function Menu({ items, location }) {
                 >
                   Edit
                 </button>
+                </div>
               )}
               {location != "view" && (
                 <div
@@ -493,6 +576,7 @@ function Menu({ items, location }) {
                 style={{
                   fontFamily: "Lato",
                   marginTop: "40px",
+                  height:"22%"
                 }}
               >
                 <span style={{ fontWeight: "bold" }}>Description: </span>{" "}

@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { useLocation } from "react-router";
 import { ref, uploadBytes } from "firebase/storage";
 import { v4 } from "uuid";
-import { updateDoc, arrayUnion, doc } from "firebase/firestore";
 import { db } from "../firebase/Firebase";
 import { getDownloadURL, sorage } from "firebase/storage";
 import { storage } from "../firebase/Firebase";
+import { useRef, useEffect } from 'react';
+import { collection, query, getDoc, updateDoc, doc } from "firebase/firestore";
+
 
 function VendorViewHeader() {
   const daysOfWeek = [
@@ -35,17 +37,49 @@ function VendorViewHeader() {
     sessionStorage.getItem("openTimeStart") &&
       sessionStorage.getItem("openTimeStart")
   );
+  const [verificationStatus, setVerificationStatus] = useState('');
+
   const [openHoursEnd, setOpenHoursEnd] = useState(
     sessionStorage.getItem("openTimeEnd") &&
       sessionStorage.getItem("openTimeEnd")
   );
+  const verifyStatus = sessionStorage.getItem("verify");
   const [selectedDays, setSelectedDays] = useState(
     sessionStorage.getItem("availability")!="undefined" ?
       JSON.parse(sessionStorage.getItem("availability")) : []
   );
   const [imageSource, setImageSource] = useState("");
   const [imageUpload, setImageUpload] = useState(null);
+  const [showInfo, setShowInfo] = useState(false);
+  useEffect(() => {
+    if (showInfo) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
 
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showInfo]);
+  useEffect(() => {
+    const verify = sessionStorage.getItem('verify');
+    if (verify === '1') {
+      setVerificationStatus('Verified!');
+    } else if (verify === '0') {
+      setVerificationStatus('Not Verified');
+    }
+  }, []);
+
+  const handleToggleInfo = () => {
+    setShowInfo(!showInfo);
+  };
+  const infoBoxRef = useRef(null);
+  const handleClickOutside = (event) => {
+    if (infoBoxRef.current && !infoBoxRef.current.contains(event.target)) {
+      setShowInfo(false);
+    }
+  };
   // Handler to toggle day selection
   const handleDayClick = (day) => {
     setSelectedDays((prevSelectedDays) =>
@@ -75,10 +109,15 @@ function VendorViewHeader() {
   const handleBioChange = (e) => setBio(e.target.value);
   const handleOpenHoursStartChange = (e) => setOpenHoursStart(e.target.value);
   const handleOpenHoursEndChange = (e) => setOpenHoursEnd(e.target.value);
+  
   const handleSaveChanges = async () => {
     try {
+      const userEmail = sessionStorage.getItem("email");
+      const userDocRef = doc(db, "users", userEmail);
+  
       if (imageUpload == null) {
-        await updateDoc(doc(db, "users", sessionStorage.getItem("email")), {
+        // Update the user's profile information without an image
+        await updateDoc(userDocRef, {
           name: chefsName,
           aboutMe: bio,
           zipCode: zipCode,
@@ -86,13 +125,14 @@ function VendorViewHeader() {
           openHoursStart: openHoursStart,
           openHoursEnd: openHoursEnd,
         });
-      }
-
-      const imageName = imageUpload.name + v4();
-      const imageRef = ref(storage, `images/${imageName}`);
-      uploadBytes(imageRef, imageUpload).then(async () => {
+      } else {
+        // Update the user's profile information with an image
+        const imageName = imageUpload.name + v4();
+        const imageRef = ref(storage, `images/${imageName}`);
+        await uploadBytes(imageRef, imageUpload);
         const url = await getDownloadURL(imageRef);
-        await updateDoc(doc(db, "users", sessionStorage.getItem("email")), {
+  
+        await updateDoc(userDocRef, {
           name: chefsName,
           profilePicture: url,
           aboutMe: bio,
@@ -101,11 +141,50 @@ function VendorViewHeader() {
           openHoursStart: openHoursStart,
           openHoursEnd: openHoursEnd,
         });
-      });
+      }
+  
+      // Update the items in the user's document
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        const userItems = userDocSnap.data().items || [];
+        const updatedUserItems = userItems.map(item => ({
+          ...item,
+          endTime: openHoursEnd,
+          startTime: openHoursStart,
+          vendorDistance: zipCode, // Assuming vendorDistance is a state variable
+          availability: selectedDays,
+        }));
+  
+        await updateDoc(userDocRef, { items: updatedUserItems });
+      }
+  
+      // Update the items in the menu_items_homepage collection
+      const menuDocRef = doc(db, "menu_items_homepage", "menu");
+      const menuDoc = await getDoc(menuDocRef);
+      if (menuDoc.exists()) {
+        const items = menuDoc.data().items;
+        const updatedItems = items.map(item => {
+          if (item.vendorId === userEmail) {
+            return {
+              ...item,
+              endTime: openHoursEnd,
+              startTime: openHoursStart,
+              vendorDistance: zipCode, // Assuming vendorDistance is a state variable
+              availability: selectedDays,
+            };
+          }
+          return item;
+        });
+  
+        await updateDoc(menuDocRef, { items: updatedItems });
+      }
     } catch (e) {
       console.log(e);
     }
   };
+  
+  
+  
   return (
     <div style={{ display: "flex", flexDirection: "row" }}>
       <div
@@ -166,6 +245,63 @@ function VendorViewHeader() {
           accept=".png,.jpg, .jpeg"
           style={{ display: "none" }} // Hide the default file input
         />
+      
+      <div style={{ marginTop: "5%", flexDirection: "row", display: "flex", alignItems: "center" }}>
+      <p>Verification Status</p>
+      <div 
+        onClick={handleToggleInfo} 
+        style={{
+          marginLeft: "10px",
+          width: "20px",
+          height: "20px",
+          borderRadius: "50%",
+          backgroundColor: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          position: "relative",
+          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)"
+        }}
+      >
+        <span style={{ fontSize: "14px", fontWeight: "bold" }}>?</span>
+        {showInfo && (
+          <div 
+            ref={infoBoxRef}
+            style={{
+              position: "absolute",
+              top: "30px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "350px",
+              padding: "10px",
+              backgroundColor: "white",
+              border: "1px solid #ddd",
+              borderRadius: "5px",
+              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
+              zIndex: 10
+            }}
+          >
+            <p>In order for a chef to be verified they must send a email to "homechef727@gmail.com", titled "Verification". The email should include Food Safety Certificaitons, Business Liscence, Kitchen Inspection Report, and any other information regarding credibility. </p>
+          </div>
+        )}
+      </div>
+    </div>
+    <input
+      type="text"
+      disabled={true}
+      value={verificationStatus}
+      style={{
+        padding: "10px",
+        borderRadius: "5px",
+        border: "none",
+        width: "100%",
+        outline: "1px solid gainsboro",
+        fontSize: "20px",
+        fontFamily: "Poppins",
+        color: verificationStatus === 'Verified!' ? 'green' : 'red',
+      }}
+    />
       </div>
       <div style={{ display: "flex", flexDirection: "row" }}>
         <div style={{ display: "flex", flexDirection: "column" }}>

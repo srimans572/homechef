@@ -34,15 +34,26 @@ const AuthBox = () => {
 
   const login = async () => {
     try {
-      const user = await signInWithEmailAndPassword(auth, email, password);
-      sessionStorage.setItem("email", email)
-      console.log(user);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+  
+      // Check if the email is verified
+      if (!user.emailVerified) {
+        setError("Please verify your email address before logging in.");
+        return; // Exit the function if email is not verified
+      }
+  
+      // Set email in session storage
+      sessionStorage.setItem("email", email);
+  
+      // Navigate to the home page
       navigate("/");
     } catch (e) {
       console.log(e);
       setError(e.message);
     }
   };
+  
   
   return (
     <div
@@ -60,7 +71,7 @@ const AuthBox = () => {
         <div
           style={{
             height: "50px",
-            width: "300px",
+            width: "280px",
             backgroundColor: "tomato",
             borderRadius: "10px",
             display: "flex",
@@ -68,7 +79,7 @@ const AuthBox = () => {
             justifyContent: "center",
           }}
         >
-          <p>
+          <p style={{justifyContent: "center"}}>
             Oops!
             {mode == 1
               ? " We can't find this account!"

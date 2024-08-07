@@ -3,12 +3,11 @@ import Navbar from "../Navbar";
 import { storage } from "../firebase/Firebase";
 import { ref, uploadBytes } from "firebase/storage";
 import { v4 } from "uuid";
-import { updateDoc, arrayUnion, doc } from "firebase/firestore";
+import { updateDoc, arrayUnion, arrayRemove, doc } from "firebase/firestore";
 import { db } from "../firebase/Firebase";
 import { useLocation } from "react-router";
 import { getDownloadURL } from "firebase/storage";
 import { useNavigate } from 'react-router-dom';
-
 
 function AddItem() {
   const navigate = useNavigate();
@@ -31,105 +30,68 @@ function AddItem() {
     location.state?.item ? location.state.item.itemTags : ""
   );
   const [portion, setPortion] = useState(
-    location.state?.item ? location.state.item.itemPortion : "")
-    const [ingridients, setIngridients] = useState(
-      location.state?.item ? location.state.item.itemPortion : "")
+    location.state?.item ? location.state.item.itemPortion : ""
+  );
+  const [ingridients, setIngridients] = useState(
+    location.state?.item ? location.state.item.itemIngridients : ""
+  );
 
-  // const updateItemList = async () => {
-  //   try {
-  //     if (imageUpload == null) return;
-  //     const imageName = imageUpload.name + v4();
-  //     const imageRef = ref(storage, `images/${imageName}`);
-  //     uploadBytes(imageRef, imageUpload).then(async()=>{
-  //       const url = await getDownloadURL(imageRef)
-  //       await updateDoc(doc(db, "users", sessionStorage.getItem("email")), {
-  //         items: arrayUnion({
-  //           itemName: name,
-  //           itemDescription: description,
-  //           itemPrice: price,
-  //           itemCuisine: cuisine,
-  //           itemTags: tags,
-  //           itemImage: url,
-  //           itemPortion: portion,
-  //           itemIngridients: ingridients,
-  //           vendorId: sessionStorage.getItem("email"),
-  //           vendorName: sessionStorage.getItem("name"),
-  //           vendorDistance: sessionStorage.getItem("zipCode"),
-  //           vendorTelegramId: sessionStorage.getItem("telegramId")  
-  //         }),
-  //       });
-  
-  //       await updateDoc(doc(db, "menu_items_homepage", "menu"), {
-  //         items: arrayUnion({
-  //           itemName: name,
-  //           itemDescription: description,
-  //           itemPrice: price,
-  //           itemCuisine: cuisine,
-  //           itemTags: tags,
-  //           itemImage: url,
-  //           itemPortion: portion,
-  //           itemIngridients: ingridients,
-  //           vendorId: sessionStorage.getItem("email"),
-  //           vendorName: sessionStorage.getItem("name"),
-  //           vendorDistance: sessionStorage.getItem("zipCode"),
-  //           vendorTelegramId: sessionStorage.getItem("telegramId")  
-  //         }),
-  //       });
-  
-  //     })
-  //     console.log(document);
-  //   } catch (e) {
-  //     console.log(e);
-  //   }
-  // };
   const [loading, setLoading] = useState(false); // New state for loading
 
   const updateItemList = async () => {
-    setLoading(true); // Start loading
+    setLoading(true);
     try {
-      if (imageUpload == null) return;
-      const imageName = imageUpload.name + v4();
-      const imageRef = ref(storage, `images/${imageName}`);
-      await uploadBytes(imageRef, imageUpload);
-      const url = await getDownloadURL(imageRef);
+      let url = location.state?.item?.itemImage || ""; // Keep old image URL if not updating
+      if (imageUpload != null) {
+        const imageName = imageUpload.name + v4();
+        const imageRef = ref(storage, `images/${imageName}`);
+        await uploadBytes(imageRef, imageUpload);
+        url = await getDownloadURL(imageRef);
+      }
+  
+      // Remove the old item if it exists
+      if (location.state?.item) {
+        await updateDoc(doc(db, "users", sessionStorage.getItem("email")), {
+          items: arrayRemove(location.state.item),
+        });
+  
+        await updateDoc(doc(db, "menu_items_homepage", "menu"), {
+          items: arrayRemove(location.state.item),
+        });
+      }
+  
+      // Add the new item
+      const newItem = {
+        itemName: name,
+        itemDescription: description,
+        itemPrice: price,
+        itemCuisine: cuisine,
+        itemTags: tags,
+        itemImage: url,
+        itemPortion: portion,
+        itemIngridients: ingridients,
+        startTime:sessionStorage.getItem("openTimeStart"),
+        endTime:sessionStorage.getItem("openTimeEnd"),
+        availability: sessionStorage.getItem("availability"),
+        vendorId: sessionStorage.getItem("email"),
+        vendorName: sessionStorage.getItem("name"),
+        vendorDistance: sessionStorage.getItem("zipCode"),
+        vendorTelegramId: sessionStorage.getItem("telegramId"),
+      };
+  
       await updateDoc(doc(db, "users", sessionStorage.getItem("email")), {
-        items: arrayUnion({
-          itemName: name,
-          itemDescription: description,
-          itemPrice: price,
-          itemCuisine: cuisine,
-          itemTags: tags,
-          itemImage: url,
-          itemPortion: portion,
-          itemIngridients: ingridients,
-          vendorId: sessionStorage.getItem("email"),
-          vendorName: sessionStorage.getItem("name"),
-          vendorDistance: sessionStorage.getItem("zipCode"),
-          vendorTelegramId: sessionStorage.getItem("telegramId")
-        }),
+        items: arrayUnion(newItem),
       });
-
+  
       await updateDoc(doc(db, "menu_items_homepage", "menu"), {
-        items: arrayUnion({
-          itemName: name,
-          itemDescription: description,
-          itemPrice: price,
-          itemCuisine: cuisine,
-          itemTags: tags,
-          itemImage: url,
-          itemPortion: portion,
-          itemIngridients: ingridients,
-          vendorId: sessionStorage.getItem("email"),
-          vendorName: sessionStorage.getItem("name"),
-          vendorDistance: sessionStorage.getItem("zipCode"),
-          vendorTelegramId: sessionStorage.getItem("telegramId")
-        }),
+        items: arrayUnion(newItem),
       });
+  
       navigate("/edit-chef-profile");
     } catch (e) {
       console.log(e);
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
 
@@ -180,7 +142,7 @@ function AddItem() {
       <Navbar />
       <div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <h1>Add a New Item</h1>
+          <h1>{location.state?.item ? "Edit Item" : "Add a New Item"}</h1>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <div style={{ marginRight: "100px" }}>
@@ -196,19 +158,29 @@ function AddItem() {
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 backgroundImage: imageSource && `url(${imageSource})`,
-               
               }}
             >
-              {(!imageSource && location.state?.item.itemImage) &&<img
-              style={{borderRadius:"10px", objectFit:"cover"}}
-                height={200}
-                width={200}
-                src={
-                  location.state?.item.itemImage
-                }
-              />}
+              {(!imageSource && location.state?.item?.itemImage) && (
+                <img
+                  style={{ borderRadius: "10px", objectFit: "cover" }}
+                  height={200}
+                  width={200}
+                  src={location.state?.item?.itemImage}
+                  alt="Uploaded item"
+                />
+              )}
             </div>
-            <label style={{justifySelf:"center", marginTop:"10px", textAlign:"center",  padding:"5px 0px", width:"200px"}} htmlFor="file-upload" className="custom-file-upload">
+            <label
+              style={{
+                justifySelf: "center",
+                marginTop: "10px",
+                textAlign: "center",
+                padding: "5px 0px",
+                width: "200px"
+              }}
+              htmlFor="file-upload"
+              className="custom-file-upload"
+            >
               Upload Item Picture +
             </label>
             <input
@@ -228,7 +200,7 @@ function AddItem() {
             >
               <label>Description </label>
               <p style={{ margin: "0px", fontSize: "12px", color: "gray" }}>
-                Describe your home cooked item
+                Describe your home-cooked item
               </p>
               <br />
               <textarea
@@ -254,9 +226,9 @@ function AddItem() {
                 alignItems: "flex-start",
               }}
             >
-              <label>Ingridients </label>
+              <label>Ingredients </label>
               <p style={{ margin: "0px", fontSize: "12px", color: "gray" }}>
-                List each ingridient with a comma
+                List each ingredient with a comma
               </p>
               <br />
               <input
@@ -270,9 +242,8 @@ function AddItem() {
                   outline: "1px solid gainsboro",
                   fontSize: "14px",
                   fontFamily: "Poppins",
-                  resize: "none",
                 }}
-              ></input>
+              />
             </div>
           </div>
           <div
@@ -455,7 +426,7 @@ function AddItem() {
           onClick={async () => {
             updateItemList();
           }}
-          disabled={loading} // Disable button while loading
+          disabled={loading} // Disable the button while loading
         >
           {loading ? (
             <div style={{
@@ -467,7 +438,7 @@ function AddItem() {
               animation: "spin 1s linear infinite",
             }}></div>
           ) : (
-            "Add Item to My Menu"
+            location.state?.item ? "Update Item" : "Add Item to My Menu"
           )}
         </button>
       </div>
