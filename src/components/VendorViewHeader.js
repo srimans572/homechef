@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useLocation } from "react-router";
+import React, { useState} from "react";
+import { useLocation, useNavigate } from "react-router";
 import { ref, uploadBytes } from "firebase/storage";
 import { v4 } from "uuid";
 import { db } from "../firebase/Firebase";
@@ -10,6 +10,7 @@ import { collection, query, getDoc, updateDoc, doc } from "firebase/firestore";
 
 
 function VendorViewHeader() {
+  const navigate=useNavigate()
   const daysOfWeek = [
     { day: "Mon", fullName: "Monday" },
     { day: "Tue", fullName: "Tuesday" },
@@ -109,7 +110,9 @@ function VendorViewHeader() {
   const handleBioChange = (e) => setBio(e.target.value);
   const handleOpenHoursStartChange = (e) => setOpenHoursStart(e.target.value);
   const handleOpenHoursEndChange = (e) => setOpenHoursEnd(e.target.value);
-  
+  const reloadPage = () => {
+    navigate(0); // This will reload the current page
+  };
   const handleSaveChanges = async () => {
     try {
       const userEmail = sessionStorage.getItem("email");
@@ -156,6 +159,13 @@ function VendorViewHeader() {
         }));
   
         await updateDoc(userDocRef, { items: updatedUserItems });
+        // Prepare session storage data with availability as a stringc
+        const sessionStorageItems = updatedUserItems.map(item => ({
+          ...item,
+          availability: JSON.stringify(item.availability), // Stringify availability for session storage
+        }));
+
+        sessionStorage.setItem('items', JSON.stringify(sessionStorageItems));
       }
   
       // Update the items in the menu_items_homepage collection
@@ -178,6 +188,7 @@ function VendorViewHeader() {
   
         await updateDoc(menuDocRef, { items: updatedItems });
       }
+      navigate('/')
     } catch (e) {
       console.log(e);
     }

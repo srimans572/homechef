@@ -37,7 +37,7 @@ function Menu({ items, location }) {
       // Optionally, you can update the local state or reload the items
       const updatedItems = items.filter(i => i.itemImage !== item.itemImage);
       setCartItems(updatedItems);
-      sessionStorage.setItem("cart", JSON.stringify(updatedItems));
+      sessionStorage.setItem("items", JSON.stringify(updatedItems));
 
       // Provide feedback or navigate as needed
       window.location.reload()
